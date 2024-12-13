@@ -35,7 +35,7 @@
    ```
 
 ## Deployed Application
-Access the live application here: [React Calendar App](#). *([Update this link with the deployed URL](https://react-calendar-project.vercel.app/))*
+Access the live application here: [React Calendar App](#). *(https://react-calendar-project.vercel.app/)*
 
 ---
 
