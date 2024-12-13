@@ -1,37 +1,11 @@
 import './App.css';
-import { startOfMonth, endOfMonth, getDay, subDays, addDays, getDate, format, addMonths, subMonths, isToday, isWeekend } from "date-fns";
+import { format, addMonths, subMonths } from "date-fns";
 import { useState } from "react";
-import { saveAs } from "file-saver";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
-
-// Function to generate the calendar grid dates
-function generateCalendar(year, month) {
-  const startOfMonthDate = startOfMonth(new Date(year, month));
-  const endOfMonthDate = endOfMonth(new Date(year, month));
-
-  const daysFromPrevMonth = getDay(startOfMonthDate); // Days from previous month
-  const totalDays = getDate(endOfMonthDate); // Total days in the current month
-
-  // Get days from the previous month to fill the grid
-  const prevMonthDays = Array.from({ length: daysFromPrevMonth }, (_, i) =>
-    subDays(startOfMonthDate, daysFromPrevMonth - i)
-  );
-
-  // Get all days in the current month
-  const currentMonthDays = Array.from({ length: totalDays }, (_, i) =>
-    addDays(startOfMonthDate, i)
-  );
-
-  // Get days from the next month to complete the grid (42 cells total)
-  const daysFromNextMonth = 42 - (prevMonthDays.length + currentMonthDays.length);
-  const nextMonthDays = Array.from({ length: daysFromNextMonth }, (_, i) =>
-    addDays(endOfMonthDate, i + 1)
-  );
-
-  // Combine all days into a single array
-  return [...prevMonthDays, ...currentMonthDays, ...nextMonthDays];
-}
-
+import { generateCalendar } from './components/Calendar';
+import MonthNavBar from './components/MonthNavBar';
+import CalendarComp from './components/CalendarComp';
+import { exportEvents } from './components/Exports';
+import EventModal from './components/EventModal';
 function App() {
   // State for the current year and month
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -86,79 +60,66 @@ function App() {
       }
     }
   };
-
-  // Handle drag-and-drop functionality
-  const onDragEnd = (result) => {
-    if (!result.destination) return;
-
-    const [sourceDate, sourceIndex] = result.source.droppableId.split("_");
-    const destinationDate = result.destination.droppableId;
-
-    const sourceEvents = [...(events[sourceDate] || [])];
-    const destinationEvents = [...(events[destinationDate] || [])];
-
-    const [movedEvent] = sourceEvents.splice(sourceIndex, 1);
-    destinationEvents.splice(result.destination.index, 0, movedEvent);
-
-    setEvents((prevEvents) => ({
-      ...prevEvents,
-      [sourceDate]: sourceEvents,
-      [destinationDate]: destinationEvents,
-    }));
-  };
-
-  // Export events to JSON or CSV
-  const exportEvents = (formatType) => {
-    const monthKey = format(currentDate, "yyyy-MM");
-    const monthEvents = Object.keys(events)
-      .filter((key) => key.startsWith(monthKey))
-      .reduce((acc, key) => ({
-        ...acc,
-        [key]: events[key],
-      }), {});
-
-    if (formatType === "JSON") {
-      const blob = new Blob([JSON.stringify(monthEvents, null, 2)], { type: "application/json" });
-      saveAs(blob, `${monthKey}-events.json`);
-    } else if (formatType === "CSV") {
-      const csvRows = ["Date,Event Name,Start Time,End Time,Type"];
-      Object.entries(monthEvents).forEach(([date, dayEvents]) => {
-        dayEvents.forEach(({ name, startTime, endTime, type }) => {
-          csvRows.push(`${date},${name},${startTime},${endTime},${type}`);
-        });
-      });
-      const blob = new Blob([csvRows.join("\n")], { type: "text/csv" });
-      saveAs(blob, `${monthKey}-events.csv`);
-    }
-  };
-
   return (
     <>
       <div className="p-5">
-        <h1 className="text-xl font-bold mb-4">My Calendar</h1>
+        <h1 className="text-xl font-bold mb-4 text-center">My Calendar</h1>
 
         {/* Month navigation bar */}
-        <div className="flex justify-between items-center mb-4">
-          <button onClick={handlePrevMonth} className="bg-gray-300 px-2 py-1 rounded">Previous</button>
-          <h2 className="text-lg font-semibold">{format(currentDate, "MMMM yyyy")}</h2>
-          <button onClick={handleNextMonth} className="bg-gray-300 px-2 py-1 rounded">Next</button>
-        </div>
+        <MonthNavBar handlePrevMonth = {handlePrevMonth} handleNextMonth = {handleNextMonth} currentDate = {currentDate}></MonthNavBar>
 
-        {/* Export buttons */}
-        <div className="flex justify-end gap-2 mb-4">
-          <button onClick={() => exportEvents("JSON")} className="bg-blue-500 text-white px-4 py-2 rounded">Export JSON</button>
-          <button onClick={() => exportEvents("CSV")} className="bg-green-500 text-white px-4 py-2 rounded">Export CSV</button>
-        </div>
+
 
         {/* Days of the week header */}
-        <div className="grid grid-cols-7 gap-2 w-1/3 text-center font-bold">
+        <div className="grid grid-cols-7 gap-2 w-1/2 text-center font-bold justify-self-center">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
             <div key={day} className="text-gray-700">{day}</div>
           ))}
         </div>
 
-        {/* Calendar grid with drag-and-drop */}
-        <DragDropContext onDragEnd={onDragEnd}>
+
+        {/* Actual calendar grid */}
+        <CalendarComp handleDateClick = {handleDateClick} calendarDays ={calendarDays} events = {events} month = {month}></CalendarComp>
+        
+        {/* Export buttons */}
+        <div className="flex justify-end gap-2 mb-4">
+          <button onClick={() => exportEvents("JSON", currentDate,events)} className="bg-blue-500 text-white px-4 py-2 rounded">Export JSON</button>
+          <button onClick={() => exportEvents("CSV", currentDate, events)} className="bg-green-500 text-white px-4 py-2 rounded">Export CSV</button>
+        </div>
+
+        {/* Event Modal */}
+        {modalOpen && <EventModal selectedDate={selectedDate} events={events} handleAddEvent={handleAddEvent} newEvent={newEvent} setNewEvent={setNewEvent} setModalOpen={setModalOpen}></EventModal>}
+      </div>
+      </>
+    );
+  }
+
+  export default App;
+
+// The following code is the incomplete version of the drag and drop feature of the  tasks in the calendar
+
+    // // Handle drag-and-drop functionality
+  // const onDragEnd = (result) => {
+  //   if (!result.destination) return;
+
+  //   const [sourceDate, sourceIndex] = result.source.droppableId.split("_");
+  //   const destinationDate = result.destination.droppableId;
+
+  //   const sourceEvents = [...(events[sourceDate] || [])];
+  //   const destinationEvents = [...(events[destinationDate] || [])];
+
+  //   const [movedEvent] = sourceEvents.splice(sourceIndex, 1);
+  //   destinationEvents.splice(result.destination.index, 0, movedEvent);
+
+  //   setEvents((prevEvents) => ({
+  //     ...prevEvents,
+  //     [sourceDate]: sourceEvents,
+  //     [destinationDate]: destinationEvents,
+  //   }));
+  // };
+
+          {/* Calendar grid with drag-and-drop */}
+        {/* <DragDropContext onDragEnd={onDragEnd}>
           <div className="grid grid-cols-7 gap-2 w-1/3">
             {calendarDays.map((date, i) => {
               const dateKey = format(date, "yyyy-MM-dd");
@@ -211,80 +172,4 @@ function App() {
               );
             })}
           </div>
-        </DragDropContext>
-
-        {/* Event Modal */}
-        {modalOpen && (
-          <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex justify-center items-center">
-            <div className="bg-white p-4 rounded shadow-md w-1/3">
-              <h2 className="text-lg font-bold mb-4">Events for {format(selectedDate, "MMMM d, yyyy")}</h2>
-
-              {/* Display existing events */}
-              <div className="mb-4">
-                {events[format(selectedDate, "yyyy-MM-dd")]?.map((event, index) => (
-                  <div key={index} className="p-2 border-b border-gray-200">
-                    <p className="font-bold">{event.name}</p>
-                    <p>
-                      {event.startTime} - {event.endTime} ({event.type})
-                    </p>
-                  </div>
-                )) || <p>No events for this day.</p>}
-              </div>
-
-              {/* Add new event form */}
-              <input
-                type="text"
-                value={newEvent.name}
-                onChange={(e) => setNewEvent({ ...newEvent, name: e.target.value })}
-                className="w-full p-2 border border-gray-300 rounded mb-2"
-                placeholder="Event name"
-              />
-              <div className="flex gap-2 mb-2">
-                <input
-                  type="time"
-                  value={newEvent.startTime}
-                  onChange={(e) => setNewEvent({ ...newEvent, startTime: e.target.value })}
-                  className="flex-1 p-2 border border-gray-300 rounded"
-                />
-                <input
-                  type="time"
-                  value={newEvent.endTime}
-                  onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })}
-                  className="flex-1 p-2 border border-gray-300 rounded"
-                />
-              </div>
-              <select
-                value={newEvent.type}
-                onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value })}
-                className="w-full p-2 border border-gray-300 rounded mb-4"
-              >
-                <option value="">Select type</option>
-                <option value="work">Work</option>
-                <option value="personal">Personal</option>
-                <option value="other">Other</option>
-              </select>
-
-              <div className="flex justify-end">
-                <button
-                  onClick={() => setModalOpen(false)}
-                  className="bg-gray-300 px-4 py-2 rounded mr-2"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAddEvent}
-                  className="bg-blue-500 text-white px-4 py-2 rounded"
-                >
-                  Add Event
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-      </>
-    );
-  }
-
-  export default App;
-
+        </DragDropContext> */}
