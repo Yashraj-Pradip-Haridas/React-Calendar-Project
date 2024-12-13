@@ -1,6 +1,6 @@
 import { format } from "date-fns"
 
-const EventModal = ({selectedDate, events, handleAddEvent, newEvent, setNewEvent, setModalOpen})=>{
+const EventModal = ({selectedDate, events, handleAddEvent, newEvent, setNewEvent, setModalOpen, handleDeleteEvent})=>{
   return(
     <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex justify-center items-center">
             <div className="bg-white p-4 rounded shadow-md w-1/3">
@@ -9,11 +9,14 @@ const EventModal = ({selectedDate, events, handleAddEvent, newEvent, setNewEvent
               {/* Display existing events */}
               <div className="mb-4">
                 {events[format(selectedDate, "yyyy-MM-dd")]?.map((event, index) => (
-                  <div key={index} className="p-2 border-b border-gray-200">
+                  <div key={index} className="p-2 border-b border-gray-200 flex justify-between">
+                    <div>
                     <p className="font-bold">{event.name}</p>
                     <p>
                       {event.startTime} - {event.endTime} ({event.type})
                     </p>
+                    </div>
+                    <button className="rounded bg-black h-6 w-14 text-white text-sm" onClick={()=>handleDeleteEvent(event.startTime,event.endTime)}>Delete</button>
                   </div>
                 )) || <p>No events for this day.</p>}
               </div>

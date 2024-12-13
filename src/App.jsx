@@ -60,6 +60,31 @@ function App() {
       }
     }
   };
+// --------------------------------------------
+
+const handleDeleteEvent = (startTime, endTime) => {
+  // Find the correct date string format
+  const formattedDate = format(selectedDate, "yyyy-MM-dd");
+
+  // Create a copy of the events for the selected date
+  const updatedEvents = [...(events[formattedDate] || [])];
+
+  // Filter out the event with the matching start and end time
+  const filteredEvents = updatedEvents.filter(
+    (event) => event.startTime !== startTime || event.endTime !== endTime
+  );
+
+  // Update the events state
+  // You should update the state with the filtered events for the selected date
+  const updatedEventsObj = {
+    ...events,
+    [formattedDate]: filteredEvents,
+  };
+  
+  setEvents(updatedEventsObj);  // Assuming you have a setEvents function to update the state
+};
+
+// ----------------------------------------------------------
   return (
     <>
       <div className="p-5">
@@ -88,7 +113,7 @@ function App() {
         </div>
 
         {/* Event Modal */}
-        {modalOpen && <EventModal selectedDate={selectedDate} events={events} handleAddEvent={handleAddEvent} newEvent={newEvent} setNewEvent={setNewEvent} setModalOpen={setModalOpen}></EventModal>}
+        {modalOpen && <EventModal selectedDate={selectedDate} events={events} handleAddEvent={handleAddEvent} newEvent={newEvent} setNewEvent={setNewEvent} setModalOpen={setModalOpen} handleDeleteEvent={handleDeleteEvent}></EventModal>}
       </div>
       </>
     );
